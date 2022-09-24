@@ -4,6 +4,7 @@ require('dotenv').config();
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const admin = require("firebase-admin");
 const ObjectId = require('mongodb').ObjectId;
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 
@@ -70,6 +71,19 @@ async function run() {
         res.json(result);
       })
 
+      app.put('/appointments/:id', async(req, res) =>{
+         const id = req.params.id;
+         const payment = req.body;
+         const filter = {_id: ObjectId(id)};
+         const updateDoc = {
+          $set: {
+            payment: payment,
+          }
+         };
+         const result = await appointmentsCollection.updateOne(filter, updateDoc);
+         res.json(result);
+      });
+
       app.post('/users', async(req, res) => {
         const user = req.body;
         const result = await usersCollection.insertOne(user);
@@ -111,6 +125,19 @@ async function run() {
           isAdmin = true;
         }
         res.json({admin: isAdmin});
+      });
+
+      app.post('/create-payment-intent', async(req, res) =>{
+        const paymentInfo = req.body;
+        const amount = paymentInfo.price * 100;
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: amount,
+          currency: "usd",
+          payment_method_types: ['card'],
+        });
+        res.json({
+          clientSecret: paymentIntent.client_secret,
+        });
       });
 
 
