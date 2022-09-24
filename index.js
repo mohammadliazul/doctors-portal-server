@@ -3,6 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const admin = require("firebase-admin");
+const ObjectId = require('mongodb').ObjectId;
 
 const app = express();
 
@@ -17,7 +18,7 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
-const serviceAccount = require("./doctors-portal-firebase-adminsdk.json");
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -62,6 +63,13 @@ async function run() {
         res.json(appointments);
       });
 
+      app.get('/appointments/:id', async(req, res)=>{
+        const id = req.params.id;
+        const query = {_id: ObjectId(id)};
+        const result = await appointmentsCollection.findOne(query);
+        res.json(result);
+      })
+
       app.post('/users', async(req, res) => {
         const user = req.body;
         const result = await usersCollection.insertOne(user);
@@ -104,6 +112,7 @@ async function run() {
         }
         res.json({admin: isAdmin});
       });
+
 
     } finally {
     //   await client.close();
