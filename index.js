@@ -156,7 +156,13 @@ async function run() {
         }
         const result = await doctorsCollection.insertOne(doctor);
         res.json(result);
-    })
+    });
+
+    app.get('/doctors', async(req, res) => {
+      const cursor = doctorsCollection.find({});
+      const doctors = await cursor.toArray();
+      res.json(doctors);
+    });
 
 
     } finally {
