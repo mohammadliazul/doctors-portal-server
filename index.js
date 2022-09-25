@@ -5,6 +5,7 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 const admin = require("firebase-admin");
 const ObjectId = require('mongodb').ObjectId;
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const fileUpload = require('express-fileupload');
 
 const app = express();
 
@@ -12,8 +13,8 @@ const port = process.env.PORT || 5000;
 
 // middleware
 app.use(cors());
-
 app.use(express.json());
+app.use(fileUpload());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.hta0c.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -48,6 +49,7 @@ async function run() {
         const database = client.db('doctors_portal');
         const appointmentsCollection = database.collection('appointments');
         const usersCollection = database.collection('users');
+        const doctorsCollection = database.collection('doctors');
 
       app.post('/appointments', async (req, res) => {
         const appointment = req.body;
@@ -139,6 +141,22 @@ async function run() {
           clientSecret: paymentIntent.client_secret,
         });
       });
+
+      app.post('/doctors', async (req, res) => {
+        const name = req.body.name;
+        const phone = req.body.phone;
+        const image = req.files.image;
+        const imageData = image.data;
+        const encodedImage = imageData.toString('base64');
+        const imageBuffer = Buffer.from(encodedImage, 'base64');
+        const doctor = {
+            name,
+            phone,
+            image: imageBuffer
+        }
+        const result = await doctorsCollection.insertOne(doctor);
+        res.json(result);
+    })
 
 
     } finally {
